@@ -25,6 +25,50 @@ const client = new MongoClient(uri, {
 
 async function run() {
   try {
+    const UserData = client.db('Food-sharing').collection('Data');
+    const FoodData = client.db('Food-sharing').collection('AllFood');
+    app.post('/user',async(req, res)=>{
+        const userdata = req.body;
+        const result = await UserData.insertOne(userdata);
+        res.send(result)
+    })
+    app.patch('/user', async(req, res)=>{
+        const userdata = req.body;
+        const UesrEmail = {email:userdata.email};
+        const ubdateDoc ={
+            $set:{
+              listTimeLogin:userdata.listTime
+            }
+          }
+        const result = await UserData.updateOne(UesrEmail,ubdateDoc);
+        res.send(result)
+    })
+    // User data get.........
+    app.get('/user', async(req, res)=>{
+    //    const userEmail = req.query;
+    //    console.log(query) ;
+    console.log(req.query.email)
+
+       let query ={};
+       console.log(query)
+       if (req.query?.email) {
+        query = {email: req.query?.email}
+       }
+       const result = await UserData.find(query).toArray();
+      res.send(result)
+    })
+    // AddFood ..............
+    app.post("/addFood", async(req, res)=>{
+        const food = req.body;
+        const result = await FoodData.insertOne(food);
+        res.send(result)
+    })
+    // all Food Get....
+    app.get('/addFood', async(req, res)=>{
+
+        const result = await FoodData.find().toArray();
+        res.send(result)
+    })
     // Connect the client to the server	(optional starting in v4.7)
     await client.connect();
     // Send a ping to confirm a successful connection
