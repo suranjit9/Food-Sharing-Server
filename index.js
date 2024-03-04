@@ -3,7 +3,7 @@ const app = express()
 const port = process.env.PORT || 5000 ;
 const cors = require('cors');
 require('dotenv').config()
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 
 
 // MedalWar.........
@@ -50,7 +50,7 @@ async function run() {
     console.log(req.query.email)
 
        let query ={};
-       console.log(query)
+       console.log(req.query?.email)
        if (req.query?.email) {
         query = {email: req.query?.email}
        }
@@ -65,9 +65,51 @@ async function run() {
     })
     // all Food Get....
     app.get('/addFood', async(req, res)=>{
-
+        const filter = req.query;
+        console.log(filter)
+        const query = {
+            // FoodStatus:{$in:"available"}
+            foodName:{$regex:filter.search, $options:'i'}
+        };
+        const option = {
+            sort: {
+                Quantity: filter.sort==='asc' ? 1 : -1
+             
+            },
+          };
+          console.log(option)
+        const result = await FoodData.find(query,option).toArray();
+        res.send(result)
+    })
+    // QTY High to Low---------
+    app.get('/addFood/filter', async(req, res)=>{
         const result = await FoodData.find().toArray();
         res.send(result)
+    })
+    // FoodStatus & currant Time change.............
+    app.patch('/addFood/:id', async(req, res)=>{
+        const id = req.params.id;
+        const Status = req.body;
+        const filter = {_id: new ObjectId(id)};
+        const updateDoc = {
+            $set: {
+                FoodStatus: Status.FoodStatus,
+                Expired: Status.Expired
+            },
+          };
+          const result = await FoodData.updateOne(filter, updateDoc)
+        res.send(result)
+    })
+    // ManageFoods................
+    app.get('/ManageFoods', async(req, res)=>{
+       
+        let query ={};
+        console.log(req.query?.email)
+        if (req.query?.email) {
+         query = {email: req.query?.email}
+        }
+        const result = await FoodData.find(query).toArray();
+       res.send(result) 
     })
     // Connect the client to the server	(optional starting in v4.7)
     await client.connect();
