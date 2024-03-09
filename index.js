@@ -36,16 +36,16 @@ async function run() {
 
 
     app.post('/user', async (req, res) => {
-      const userData = req.body;
-      const result = await userData.insertOne(userData);
+      const userDataFromRequest  = req.body;
+      const result = await userData.insertOne(userDataFromRequest );
       res.send(result)
     })
     app.patch('/user', async (req, res) => {
-      const userData = req.body;
-      const UesrEmail = { email: userData.email };
+      const userDataFromRequest = req.body;
+      const UesrEmail = { email: userDataFromRequest.email };
       const ubdateDoc = {
         $set: {
-          listTimeLogin: userData.listTime
+          listTimeLogin: userDataFromRequest.listTime
         }
       }
       const result = await userData.updateOne(UesrEmail, ubdateDoc);
@@ -59,7 +59,7 @@ async function run() {
 
       let query = {};
       console.log(req.query?.email)
-      if (req.query?.email) {
+      if (req.query && req.query.email) {
         query = { email: req.query?.email }
       }
       const result = await userData.find(query).toArray();
@@ -98,7 +98,8 @@ async function run() {
         },
       };
       // console.log(option)
-      const result = await foodData.find(query, option, { "FoodStatus": { $ne: "Available" } }).toArray();
+      // const result = await foodData.find(query, option, { "FoodStatus": { $ne: "Available" } }).toArray();
+      const result = await foodData.find(query).sort(option.sort).toArray();
       res.send(result)
     })
     // QTY High to Low--------- Home page 
@@ -116,7 +117,8 @@ async function run() {
 
         },
       };
-      const result = await foodData.find(query, option).limit(12).toArray();
+      // const result = await foodData.find(query, option).limit(12).toArray();
+      const result = await foodData.find(query).sort(option.sort).limit(12).toArray();
       res.send(result)
     })
     // FoodStatus & currant Time change.............
@@ -158,6 +160,13 @@ async function run() {
       }
       res.send(result);
     })
+    app.delete(`/SentRe/delete/:id`,async (req, res)=>{
+      const id = req.params.id;
+      console.log({ id })
+      const filter = { _id: new ObjectId(id) };
+      const result = await requstfood.deleteOne(filter);
+      res.send(result);
+    })
     // SingalFood--------------
     app.get('/addFood/SingalFood/:id', async (req, res) => {
       const id = req.params.id;
@@ -183,6 +192,18 @@ async function run() {
       }
       const result = await requstfood.find(query).toArray();
       console.log({result})
+      res.send(result)
+    })
+    app.patch(`/requstFood/foodWoner/:id`, async(req, res)=>{
+      const id = req.params.id;
+      const status = req.body;
+      const query = { _id: new ObjectId(id) };
+      const updateDoc = {
+        $set: {
+          foodRequst: status.foodRequst
+        },
+      };
+      const result = await requstfood.updateOne(query, updateDoc);
       res.send(result)
     })
     app.get(`/requstFood/sentreQ/`, async (req, res) => {
