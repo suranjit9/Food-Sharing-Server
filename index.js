@@ -1,6 +1,8 @@
-const express = require('express')
-const multer = require('multer')
-const app = express()
+const express = require('express');
+const multer = require('multer');
+var jwt = require('jsonwebtoken');
+var cookieParser = require('cookie-parser');
+const app = express();
 const port = process.env.PORT || 5000;
 const cors = require('cors');
 require('dotenv').config()
@@ -8,10 +10,32 @@ const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 
 
 // MedalWar.........
-app.use(cors())
+app.use(cors({
+  origin:['http://localhost:5174'],
+  credentials:true
+}));
+app.use(cookieParser())
 app.use(express.json());
 
+// Middlawar---
+const veryfyToken = (req, res, next) =>{
+  const token = req.cookies?.token;
+  console.log('taken veryfy', token);
+  if (!token) {
+    return res.status(401).send({message: 'Unauthorized access'})
+  }else{
+    jwt.verify(token, process.env.TOKEN_ACC, (err, decoded)=>{
+      if (err) {
+        return res.status(401).send({message: 'Unauthorized access'})
+      }else{
+        req.user = decoded;
+        next();
+      }
+    })
+  }
 
+  // next()
+}
 
 
 
@@ -33,7 +57,24 @@ async function run() {
     const userData = client.db('Food-sharing').collection('Data');
     const foodData = client.db('Food-sharing').collection('AllFood');
     const requstfood = client.db('Food-sharing').collection('Requstfood');
-
+    // Auth 
+    app.post("/jwt", async(req, res)=>{
+      const user = req.body;
+      console.log("user", user);
+      const token = jwt.sign(user, process.env.TOKEN_ACC, {expiresIn:"1h"})
+      res.cookie('token',token, {
+        httpOnly: true,
+        secure:true,
+        sameSite:'none'
+      })
+      .send({token})
+    })
+    // logout jwt
+    app.post('/logout', async(req, res)=>{
+      const user = req.body;
+      console.log('logout',user);
+      res.clearCookie('token', {maxAge:0}).send({suss:true})
+    })
 
     app.post('/user', async (req, res) => {
       const userDataFromRequest  = req.body;
@@ -136,8 +177,11 @@ async function run() {
       res.send(result)
     })
     // ManageFoods................
-    app.get('/ManageFoods', async (req, res) => {
-
+    app.get('/ManageFoods',veryfyToken, async (req, res) => {
+      console.log('hello cookkkkk',req.user)
+      if (req.user.email !== req.query.email) {
+        return res.status(403).send({message: "Forbidden Access"})
+      }
       let query = {};
       // console.log(req.query?.email)
       if (req.query?.email) {
@@ -177,13 +221,19 @@ async function run() {
       res.send(result)
     })
     // customer requstFood 
-    app.post(`/requstFood`, async (req, res) => {
+    app.post(`/requstFood`,veryfyToken, async (req, res) => {
+      if (req.user.email !== req.query.email) {
+        return res.status(403).send({message: "Forbidden Access"})
+      }
       const query = req.body;
       const result = await requstfood.insertOne(query);
       res.send(result)
     })
     // Admin Food Re Get.......
-    app.get(`/requstFood/foodWoner/`, async (req, res) => {
+    app.get(`/requstFood/foodWoner/`,veryfyToken, async (req, res) => {
+      if (req.user.email !== req.query.email) {
+        return res.status(403).send({message: "Forbidden Access"})
+      }
       let query = {};
       console.log('Doner email', req.query?.email)
       console.log('Doner email44444444444',query)
@@ -206,7 +256,10 @@ async function run() {
       const result = await requstfood.updateOne(query, updateDoc);
       res.send(result)
     })
-    app.get(`/requstFood/sentreQ/`, async (req, res) => {
+    app.get(`/requstFood/sentreQ/`,veryfyToken, async (req, res) => {
+      if (req.user.email !== req.query.email) {
+        return res.status(403).send({message: "Forbidden Access"})
+      }
       let query = {};
       console.log('Doner email', req.query?.email)
       console.log('Doner email44444444444',query)
